@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Withdrawal Simulator</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161b22;
+    --panel-2: #1c232d;
+    --border: #2a3340;
+    --text: #e6edf3;
+    --muted: #8b97a6;
+    --accent: #4cc2ff;
+    --dynamic: #5ee3a1;
+    --fixed: #ff8c66;
+    --danger: #ff5c6c;
+    --good: #5ee3a1;
+    --ess: #7aa7ff;
+    --disc: #c792ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #131922, var(--bg));
+  }
+  header h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.3px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; max-width: 820px; }
+  .rules { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .rule-badge {
+    padding: 5px 11px; border-radius: 20px; font-size: 12.5px;
+    background: rgba(94,227,161,0.10); border: 1px solid rgba(94,227,161,0.35); color: var(--dynamic);
+  }
+  .layout { display: flex; gap: 0; align-items: stretch; }
+  .controls {
+    width: 330px; flex-shrink: 0; padding: 22px;
+    border-right: 1px solid var(--border); background: var(--panel);
+  }
+  .results { flex: 1; padding: 24px 32px; min-width: 0; }
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 13px; color: var(--muted); margin-bottom: 6px;
+  }
+  .field label .val { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 600; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  .box { margin: 18px 0; padding: 14px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--border); }
+  .box h3 { margin: 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .box.rule h3 { color: var(--dynamic); }
+  .box.tier h3 { color: var(--disc); }
+  .box.rail h3 { color: var(--accent); }
+  .split-hint { font-size: 11px; color: var(--muted); margin-top: -6px; }
+  .split-hint b.e { color: var(--ess); }
+  .split-hint b.d { color: var(--disc); }
+  button.run {
+    width: 100%; padding: 12px; margin-top: 4px;
+    background: var(--accent); color: #04121c; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  button.run:hover { filter: brightness(1.08); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 14px; margin-bottom: 22px; }
+  .card { padding: 15px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); }
+  .card .ttl { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; line-height: 1.3; }
+  .card .compare { display: flex; gap: 16px; }
+  .card .metric .lbl { font-size: 11px; color: var(--muted); }
+  .card .metric .num { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .dyn { color: var(--dynamic); } .fix { color: var(--fixed); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  .panel h2 { margin: 0 0 4px; font-size: 15px; }
+  .panel .sub { margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  canvas { width: 100%; display: block; }
+  .legend { display: flex; gap: 18px; font-size: 13px; margin-top: 10px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: right; padding: 6px 9px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th:last-child, td:last-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-right: 4px; white-space: nowrap; }
+  .tag.crash { background: rgba(255,92,108,0.16); color: var(--danger); }
+  .tag.cut   { background: rgba(94,227,161,0.16); color: var(--dynamic); }
+  .tag.boost { background: rgba(199,146,234,0.18); color: var(--disc); }
+  .tag.floor { background: rgba(76,194,255,0.16); color: var(--accent); }
+  .tag.ceil  { background: rgba(255,200,80,0.18); color: #ffc850; }
+  .note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  @media (max-width: 860px) {
+    .layout { flex-direction: column; }
+    .controls { width: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dynamic Withdrawal Simulator</h1>
+  <p>A flexible retirement-spending model. Monte Carlo simulation compares a fixed inflation-adjusted withdrawal against a dynamic strategy that protects the portfolio after crashes while guaranteeing your essential spending.</p>
+  <div class="rules">
+    <span class="rule-badge">🛟 3.5% starting rate for longevity margin</span>
+    <span class="rule-badge">🧱 Essential spending protected · discretionary flexes with the market</span>
+    <span class="rule-badge">📉 Cut discretionary 10% after a loss &gt; 15%</span>
+    <span class="rule-badge">🚧 Floor 85% · ceiling 110% of baseline</span>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="controls">
+    <div class="field">
+      <label>Starting portfolio <span class="val" id="v_port">$1,000,000</span></label>
+      <input type="range" id="port" min="100000" max="5000000" step="50000" value="1000000">
+    </div>
+    <div class="field">
+      <label>Base withdrawal rate <span class="val" id="v_wr">3.5%</span></label>
+      <input type="range" id="wr" min="2" max="8" step="0.1" value="3.5">
+    </div>
+    <div class="field">
+      <label>Retirement horizon <span class="val" id="v_years">30 yrs</span></label>
+      <input type="range" id="years" min="10" max="50" step="1" value="30">
+    </div>
+    <div class="field">
+      <label>Expected annual return <span class="val" id="v_ret">7.0%</span></label>
+      <input type="range" id="ret" min="2" max="12" step="0.1" value="7">
+    </div>
+    <div class="field">
+      <label>Volatility (std dev) <span class="val" id="v_vol">15%</span></label>
+      <input type="range" id="vol" min="5" max="30" step="0.5" value="15">
+    </div>
+    <div class="field">
+      <label>Inflation <span class="val" id="v_inf">2.5%</span></label>
+      <input type="range" id="inf" min="0" max="6" step="0.1" value="2.5">
+    </div>
+
+    <div class="box tier">
+      <h3>Spending Tiers</h3>
+      <div class="field" style="margin-bottom:8px">
+        <label>Essential share of baseline <span class="val" id="v_ess">60%</span></label>
+        <input type="range" id="ess" min="30" max="90" step="5" value="60">
+      </div>
+      <div class="split-hint">Year-1 spend splits into <b class="e">essential</b> (never cut, inflation-tracked) and <b class="d">discretionary</b> (flexes with the market).</div>
+    </div>
+
+    <div class="box rule">
+      <h3>Discretionary Flex Rule</h3>
+      <div class="field" style="margin-bottom:14px">
+        <label>Loss / gain trigger <span class="val" id="v_thr">15%</span></label>
+        <input type="range" id="thr" min="5" max="30" step="1" value="15">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Flex step <span class="val" id="v_cut">10%</span></label>
+        <input type="range" id="cut" min="5" max="40" step="1" value="10">
+      </div>
+    </div>
+
+    <div class="box rail">
+      <h3>Floor &amp; Ceiling</h3>
+      <div class="field" style="margin-bottom:14px">
+        <label>Spending floor <span class="val" id="v_floor">85%</span></label>
+        <input type="range" id="floor" min="50" max="100" step="1" value="85">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Spending ceiling <span class="val" id="v_ceil">110%</span></label>
+        <input type="range" id="ceil" min="100" max="150" step="1" value="110">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Simulation trials <span class="val" id="v_trials">2,000</span></label>
+      <input type="range" id="trials" min="500" max="10000" step="500" value="2000">
+    </div>
+
+    <button class="run" id="runBtn">Run Simulation</button>
+  </aside>
+
+  <main class="results">
+    <div class="cards" id="cards"></div>
+
+    <div class="panel">
+      <h2>Portfolio survival — median &amp; range</h2>
+      <p class="sub">Shaded band = 10th–90th percentile of outcomes. Lines = median balance.</p>
+      <canvas id="fanChart" height="320"></canvas>
+      <div class="legend">
+        <span><i class="swatch" style="background:var(--dynamic)"></i> Dynamic strategy</span>
+        <span><i class="swatch" style="background:var(--fixed)"></i> Fixed withdrawal</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>One sample retirement (worst-decile path)</h2>
+      <p class="sub">A single bad-luck sequence showing the tiers and every rule firing.</p>
+      <div style="overflow-x:auto">
+        <table id="pathTable"></table>
+      </div>
+      <p class="note">
+        <span class="tag crash">crash</span> loss beyond trigger &nbsp;
+        <span class="tag cut">cut</span> discretionary stepped down &nbsp;
+        <span class="tag boost">boost</span> discretionary stepped up &nbsp;
+        <span class="tag floor">floor</span> held at 85% &nbsp;
+        <span class="tag ceil">ceiling</span> capped at 110%
+      </p>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt$ = n => '$' + Math.round(n).toLocaleString('en-US');
+const fmtK = n => n >= 1e6 ? '$'+(n/1e6).toFixed(2)+'M' : '$'+Math.round(n/1000)+'k';
+
+const labels = {
+  port:(v)=>fmt$(v), wr:(v)=>v.toFixed(1)+'%', years:(v)=>v+' yrs',
+  ret:(v)=>v.toFixed(1)+'%', vol:(v)=>v+'%', inf:(v)=>v.toFixed(1)+'%',
+  ess:(v)=>v+'%', thr:(v)=>v+'%', cut:(v)=>v+'%', floor:(v)=>v+'%', ceil:(v)=>v+'%',
+  trials:(v)=>(+v).toLocaleString('en-US')
+};
+Object.keys(labels).forEach(id=>{
+  const el=$(id), out=$('v_'+id);
+  const upd=()=>out.textContent=labels[id](parseFloat(el.value));
+  el.addEventListener('input',upd); upd();
+});
+
+function gauss(){
+  let u=0,v=0;
+  while(u===0)u=Math.random();
+  while(v===0)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+const clamp = (x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+
+// Simulate one lifetime.
+function simulateOne(p, dynamic, capture){
+  const {start, baseWithdraw, years, mean, vol, inf, thr, cut, essShare, floorPct, ceilPct} = p;
+  let bal = start;
+  const balances = [bal];
+  const path = [];
+  let prevReturn = null;
+  let depletedYear = -1;
+  let discMult = 1;            // compounding discretionary multiplier
+  let lifetimeSpend = 0;
+  let floorYears = 0, ceilYears = 0;
+
+  for (let y=1; y<=years; y++){
+    const baseSpend = baseWithdraw * Math.pow(1+inf, y-1);
+    let essential, disc, spend, clamped = null;
+    let didCut = false, didBoost = false;
+
+    if (dynamic){
+      // discretionary flexes based on LAST year's market return.
+      // Cuts always apply after a crash; boosts only when the portfolio is
+      // ahead of its inflation-adjusted starting value (you can afford to splurge).
+      if (prevReturn !== null){
+        const aheadOfPlan = bal > start * Math.pow(1+inf, y-1);
+        if (prevReturn < -thr){ discMult *= (1-cut); didCut = true; }
+        else if (prevReturn > thr && aheadOfPlan){ discMult *= (1+cut); didBoost = true; }
+      }
+      discMult = clamp(discMult, 0.5, 1.6);
+      essential = baseSpend * essShare;
+      disc = baseSpend * (1-essShare) * discMult;
+      spend = essential + disc;
+      // floor & ceiling on TOTAL spending
+      const floorV = baseSpend * floorPct, ceilV = baseSpend * ceilPct;
+      if (spend < floorV){ spend = floorV; clamped = 'floor'; floorYears++; }
+      else if (spend > ceilV){ spend = ceilV; clamped = 'ceiling'; ceilYears++; }
+    } else {
+      essential = baseSpend; disc = 0; spend = baseSpend;   // plain fixed withdrawal
+    }
+
+    if (spend > bal) spend = bal;          // can't spend what you don't have
+    bal -= spend;                          // withdraw at start of year
+    lifetimeSpend += spend;
+
+    const r = mean + vol*gauss();          // market return for the year
+    bal = bal * (1+r);
+
+    if (capture){
+      path.push({year:y, ret:r, essential, disc, spend, balEnd:bal,
+                 crash:false, cut:didCut, boost:didBoost, clamped});
+    }
+    prevReturn = r;
+    if (bal <= 0){
+      bal = 0; depletedYear = y; balances.push(0);
+      for (let k=y;k<years;k++) balances.push(0);
+      break;
+    }
+    balances.push(bal);
+  }
+  if (capture){ for (const row of path){ if (row.ret < -thr) row.crash = true; } }
+  return {balances, depleted: depletedYear>0, path, lifetimeSpend, floorYears, ceilYears};
+}
+
+function percentile(sorted, pct){
+  if(sorted.length===0) return 0;
+  const idx=(sorted.length-1)*pct, lo=Math.floor(idx), hi=Math.ceil(idx);
+  return lo===hi ? sorted[lo] : sorted[lo]+(sorted[hi]-sorted[lo])*(idx-lo);
+}
+
+function runStrategy(p, dynamic){
+  const N=p.trials, years=p.years;
+  const byYear = Array.from({length: years+1}, ()=>[]);
+  const endings=[], lifetimes=[];
+  let survived=0, floorTot=0, ceilTot=0, yearTot=0;
+  const samples=[];
+  for (let i=0;i<N;i++){
+    const capture = i < 400;
+    const res = simulateOne(p, dynamic, capture);
+    for (let y=0;y<=years;y++) byYear[y].push(res.balances[y] ?? 0);
+    endings.push(res.balances[years] ?? 0);
+    lifetimes.push(res.lifetimeSpend);
+    if (!res.depleted) survived++;
+    floorTot += res.floorYears; ceilTot += res.ceilYears; yearTot += years;
+    if (capture) samples.push({end: res.balances[years] ?? 0, path: res.path});
+  }
+  const median=[], p10=[], p90=[];
+  for (let y=0;y<=years;y++){
+    const s=byYear[y].slice().sort((a,b)=>a-b);
+    median.push(percentile(s,0.5)); p10.push(percentile(s,0.1)); p90.push(percentile(s,0.9));
+  }
+  const endSorted=endings.slice().sort((a,b)=>a-b);
+  const lifeSorted=lifetimes.slice().sort((a,b)=>a-b);
+  samples.sort((a,b)=>a.end-b.end);
+  const sample = samples.find(c=>c.path.some(r=>r.crash)) || samples[Math.floor(samples.length*0.1)] || samples[0];
+  return {
+    successRate: survived/N,
+    median, p10, p90,
+    medianEnd: percentile(endSorted,0.5),
+    p10End: percentile(endSorted,0.1),
+    medianLife: percentile(lifeSorted,0.5),
+    floorRate: yearTot?floorTot/yearTot:0,
+    ceilRate: yearTot?ceilTot/yearTot:0,
+    sample
+  };
+}
+
+let lastFix=null, lastDyn=null;
+
+function run(){
+  const p = {
+    start: +$('port').value,
+    baseWithdraw: (+$('port').value) * (+$('wr').value)/100,
+    years: +$('years').value,
+    mean: (+$('ret').value)/100,
+    vol: (+$('vol').value)/100,
+    inf: (+$('inf').value)/100,
+    thr: (+$('thr').value)/100,
+    cut: (+$('cut').value)/100,
+    essShare: (+$('ess').value)/100,
+    floorPct: (+$('floor').value)/100,
+    ceilPct: (+$('ceil').value)/100,
+    trials: +$('trials').value
+  };
+  const fix = runStrategy(p, false);
+  const dyn = runStrategy(p, true);
+  lastFix=fix; lastDyn=dyn;
+  renderCards(fix, dyn, p);
+  drawFan(fix, dyn, p);
+  renderTable(dyn.sample, p);
+}
+
+function renderCards(fix, dyn, p){
+  const succImprove = (dyn.successRate - fix.successRate)*100;
+  const cards = [
+    {ttl:'Success rate ('+p.years+'-yr survival)', dyn:(dyn.successRate*100).toFixed(1)+'%', fix:(fix.successRate*100).toFixed(1)+'%'},
+    {ttl:'Median ending balance', dyn:fmtK(dyn.medianEnd), fix:fmtK(fix.medianEnd)},
+    {ttl:'Worst-decile ending balance', dyn:fmtK(dyn.p10End), fix:fmtK(fix.p10End)},
+    {ttl:'Median lifetime spending', dyn:fmtK(dyn.medianLife), fix:fmtK(fix.medianLife)},
+  ];
+  let html = cards.map(c=>`
+    <div class="card">
+      <div class="ttl">${c.ttl}</div>
+      <div class="compare">
+        <div class="metric"><div class="lbl">Dynamic</div><div class="num dyn">${c.dyn}</div></div>
+        <div class="metric"><div class="lbl">Fixed</div><div class="num fix">${c.fix}</div></div>
+      </div>
+    </div>`).join('');
+  html += `
+    <div class="card" style="background:rgba(94,227,161,0.08);border-color:rgba(94,227,161,0.35)">
+      <div class="ttl">Rule impact</div>
+      <div class="compare">
+        <div class="metric"><div class="lbl">Survival gain</div>
+          <div class="num ${succImprove>=0?'dyn':'fix'}">${succImprove>=0?'+':''}${succImprove.toFixed(1)} pts</div></div>
+      </div>
+      <div class="lbl" style="margin-top:8px;color:var(--muted)">Rails bind: ${(dyn.floorRate*100).toFixed(0)}% yrs floor · ${(dyn.ceilRate*100).toFixed(0)}% yrs ceiling</div>
+    </div>`;
+  $('cards').innerHTML = html;
+}
+
+function drawFan(fix, dyn, p){
+  const cv=$('fanChart'), dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth, H=320;
+  cv.width=W*dpr; cv.height=H*dpr;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr); ctx.clearRect(0,0,W,H);
+  const padL=64,padR=16,padT=16,padB=30, plotW=W-padL-padR, plotH=H-padT-padB, years=p.years;
+  let maxV=0; [fix.p90,dyn.p90].forEach(a=>a.forEach(v=>{ if(v>maxV)maxV=v; }));
+  maxV=maxV*1.05||1;
+  const x=y=>padL+(y/years)*plotW, yp=v=>padT+plotH-(v/maxV)*plotH;
+  ctx.strokeStyle='#222b36'; ctx.fillStyle='#8b97a6'; ctx.font='11px sans-serif'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){ const v=maxV*i/4, yy=yp(v);
+    ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke();
+    ctx.textAlign='right'; ctx.fillText(fmtK(v), padL-8, yy+4); }
+  ctx.textAlign='center';
+  for(let yr=0;yr<=years;yr+=Math.ceil(years/6)) ctx.fillText('Yr '+yr, x(yr), H-10);
+  function band(s,c){ ctx.beginPath();
+    for(let y=0;y<=years;y++){ const px=x(y),py=yp(s.p90[y]); y===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+    for(let y=years;y>=0;y--) ctx.lineTo(x(y),yp(s.p10[y]));
+    ctx.closePath(); ctx.fillStyle=c; ctx.fill(); }
+  function line(s,c){ ctx.beginPath(); ctx.lineWidth=2.4; ctx.strokeStyle=c;
+    for(let y=0;y<=years;y++){ const px=x(y),py=yp(s.median[y]); y===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+    ctx.stroke(); }
+  band(fix,'rgba(255,140,102,0.13)'); band(dyn,'rgba(94,227,161,0.13)');
+  line(fix,'#ff8c66'); line(dyn,'#5ee3a1');
+}
+
+function renderTable(sample, p){
+  if(!sample){ $('pathTable').innerHTML=''; return; }
+  let rows = `<tr><th>Year</th><th>Return</th><th>Essential</th><th>Discretionary</th><th>Total spend</th><th>Balance</th><th>Events</th></tr>`;
+  sample.path.forEach(r=>{
+    let tags='';
+    if(r.crash)   tags+='<span class="tag crash">crash '+(r.ret*100).toFixed(1)+'%</span>';
+    if(r.cut)     tags+='<span class="tag cut">cut</span>';
+    if(r.boost)   tags+='<span class="tag boost">boost</span>';
+    if(r.clamped==='floor')   tags+='<span class="tag floor">floor</span>';
+    if(r.clamped==='ceiling') tags+='<span class="tag ceil">ceiling</span>';
+    rows += `<tr>
+      <td>${r.year}</td>
+      <td style="color:${r.ret<0?'var(--danger)':'var(--good)'}">${(r.ret*100).toFixed(1)}%</td>
+      <td style="color:var(--ess)">${fmt$(r.essential)}</td>
+      <td style="color:var(--disc)">${fmt$(r.disc)}</td>
+      <td><b>${fmt$(r.spend)}</b></td>
+      <td>${fmt$(r.balEnd)}</td>
+      <td>${tags||'—'}</td>
+    </tr>`;
+  });
+  $('pathTable').innerHTML = rows;
+}
+
+$('runBtn').addEventListener('click', run);
+window.addEventListener('resize', ()=>{ if(lastFix) drawFan(lastFix,lastDyn,{years:+$('years').value}); });
+run();
+</script>
+</body>
+</html>
