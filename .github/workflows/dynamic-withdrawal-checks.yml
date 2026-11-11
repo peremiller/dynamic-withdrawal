@@ -1,0 +1,19 @@
+name: Dynamic Withdrawal accessibility and offline integrity
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify accessible simulator contract and offline digest
+        run: node --test tests/dynamic-withdrawal.test.mjs
+      - name: Verify deterministic offline bundle build
+        run: |
+          python3 scripts/build-offline.py
+          git diff --exit-code -- index.html sw.js offline-assets.json
