@@ -60,3 +60,27 @@ test('inline simulation JavaScript parses', () => {
   assert.ok(inline, 'Expected inline simulation logic');
   assert.doesNotThrow(() => new Function(inline[1]));
 });
+
+test('lower-decile sample follows ending-balance percentile even when an extreme crash exists', () => {
+  const engine = html.match(/function simulateOne\(p, dynamic, capture\)\{[\s\S]*?\/\/ slim run \(metrics only\) for the optimizer/);
+  assert.ok(engine, 'expected simulation and percentile functions');
+  let draw = 0;
+  const makeEngine = new Function('gauss', 'clamp', engine[0] + '\nreturn {runStrategy};');
+  const { runStrategy } = makeEngine(
+    () => { const i = draw++; return i === 0 ? -0.5 : i * 0.005; },
+    (x, lo, hi) => Math.max(lo, Math.min(hi, x))
+  );
+  const p = { start: 100, baseWithdraw: 0, years: 1, mean: 0, vol: 1, inf: 0,
+    thr: 0.15, cut: 0.1, essShare: 0.6, floorPct: 0.85, ceilPct: 1.1, trials: 100 };
+  const result = runStrategy(p, true);
+  assert.equal(draw, 100);
+  assert.ok(result.sample.path[0].balEnd > 100, 'should not select the absolute worst crash');
+  assert.ok(Math.abs(result.sample.path[0].balEnd - result.p10End) < 2, 'sample should be near lower decile');
+});
+
+test('stale simulation outputs are announced and recommendations are hidden after input changes', () => {
+  assert.match(html, /id="resultsStatus" role="status" aria-live="polite"/);
+  assert.match(html, /Inputs changed\. Run Simulation to update the results\./);
+  assert.match(html, /Simulation refreshed for /);
+  assert.match(html, /suggestPanel'\)\.classList\.remove\('show'\)/);
+});

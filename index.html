@@ -254,6 +254,7 @@
       <p class="note">Projections from this Monte Carlo model, not financial advice. Your portfolio, horizon, return, volatility and inflation are taken from the sliders on the left.</p>
     </div>
 
+    <p class="note" id="resultsStatus" role="status" aria-live="polite">Simulation results are based on the current inputs.</p>
     <div class="cards" id="cards"></div>
 
     <div class="panel">
@@ -268,8 +269,8 @@
     </div>
 
     <div class="panel">
-      <h2>One sample retirement (worst-decile path)</h2>
-      <p class="sub">A single bad-luck sequence showing the tiers and every rule firing.</p>
+      <h2>Illustrative lower-decile retirement path</h2>
+      <p class="sub">A sampled path near the 10th percentile of ending balances (from up to 400 paths). Events appear only if they occurred in this path.</p>
       <div style="overflow-x:auto">
         <table id="pathTable"></table>
       </div>
@@ -319,7 +320,11 @@ const labels = {
 };
 function refreshLabel(id){ $('v_'+id).textContent = labels[id](parseFloat($(id).value)); }
 Object.keys(labels).forEach(id=>{
-  $(id).addEventListener('input',()=>refreshLabel(id));
+  $(id).addEventListener('input',()=>{
+    refreshLabel(id);
+    $('resultsStatus').textContent = 'Inputs changed. Run Simulation to update the results.';
+    $('suggestPanel').classList.remove('show');
+  });
   refreshLabel(id);
 });
 
@@ -424,7 +429,8 @@ function runStrategy(p, dynamic){
   const endSorted=endings.slice().sort((a,b)=>a-b);
   const lifeSorted=lifetimes.slice().sort((a,b)=>a-b);
   samples.sort((a,b)=>a.end-b.end);
-  const sample = samples.find(c=>c.path.some(r=>r.crash)) || samples[Math.floor(samples.length*0.1)] || samples[0];
+  // Show a representative lower-decile ending-balance path, not an arbitrary worst crash.
+  const sample = samples[Math.floor((samples.length - 1) * 0.1)] || samples[0];
   return {
     successRate: survived/N, median, p10, p90,
     medianEnd: percentile(endSorted,0.5), p10End: percentile(endSorted,0.1),
@@ -479,6 +485,7 @@ function run(){
   const p = paramsFor(strategy, +$('trials').value);
   const fix = runStrategy(p, false);
   const dyn = runStrategy(p, true);
+  $('resultsStatus').textContent = 'Simulation refreshed for ' + p.years + ' years with ' + p.trials.toLocaleString('en-US') + ' trials per strategy.';
   lastFix=fix; lastDyn=dyn;
   renderCards(fix, dyn, p);
   drawFan(fix, dyn, p);
