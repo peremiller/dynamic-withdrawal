@@ -19,14 +19,14 @@ test('chart has a descriptive text equivalent updated from simulated percentile 
   assert.match(html, /<h2 id="fanChartHeading">/);
   assert.match(html, /<canvas id="fanChart"[^>]*role="img"[^>]*aria-labelledby="fanChartHeading"[^>]*aria-describedby="fanChartSummary"/);
   assert.match(html, /<p id="fanChartSummary"[^>]*aria-live="polite"/);
-  assert.match(html, /fanChartSummary'\\)\\.textContent = 'After '/);
+  assert.ok(html.includes("fanChartSummary').textContent = 'After '"));
   for (const token of ['dyn.medianEnd', 'fix.medianEnd', 'dyn.p10[p.years]', 'dyn.p90[p.years]', 'fix.p10[p.years]', 'fix.p90[p.years]']) assert.ok(html.includes(token));
 });
 
 test('keyboard focus and narrow layout are defined; reduced-motion spinner is supported', () => {
-  assert.match(html, /:focus-visible \\{ outline: 3px solid var\\(--text\\)/);
-  assert.match(html, /@media \\(prefers-reduced-motion: reduce\\)/);
-  assert.match(html, /@media \\(max-width: 430px\\)/);
+  assert.ok(html.includes(':focus-visible { outline: 3px solid var(--text)'));
+  assert.ok(html.includes('@media (prefers-reduced-motion: reduce)'));
+  assert.ok(html.includes('@media (max-width: 430px)'));
   assert.match(html, /class="sr-only" aria-live="polite"/);
 });
 
@@ -47,7 +47,7 @@ test('generated service worker and offline manifest equal the public asset diges
   assert.equal(offline.bytes, bytes);
   assert.equal(offline.files, assets.length);
   assert.equal(offline.pages, 1);
-  const first = worker.split('\\n')[0].replace(/^const CONFIG = /,'').replace(/;$/,'');
+  const first = worker.split(String.fromCharCode(10))[0].replace(/^const CONFIG = /,'').replace(/;$/,'');
   const conf = JSON.parse(first);
   assert.equal(conf.version, offline.version);
   assert.deepEqual(conf.assets, assets);
@@ -56,9 +56,11 @@ test('generated service worker and offline manifest equal the public asset diges
 });
 
 test('inline simulation JavaScript parses', () => {
-  const inline = html.match(/<script>\\s*([\\s\\S]*?)<\\/script>/);
-  assert.ok(inline, 'Expected inline simulation logic');
-  assert.doesNotThrow(() => new Function(inline[1]));
+  const scriptStart = html.indexOf('<script>');
+  const scriptEnd = html.indexOf('</script>', scriptStart);
+  assert.ok(scriptStart >= 0 && scriptEnd > scriptStart, 'Expected inline simulation logic');
+  const inline = html.slice(scriptStart + 8, scriptEnd);
+  assert.doesNotThrow(() => new Function(inline));
 });
 
 test('lower-decile sample follows ending-balance percentile even when an extreme crash exists', () => {
