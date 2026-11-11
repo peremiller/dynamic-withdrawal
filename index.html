@@ -142,6 +142,10 @@
     border-top-color:#04121c; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; margin-right:6px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  :where(button, input, select):focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  @media (max-width: 430px) { .controls, .results { padding: 16px; } }
   @media (max-width: 860px) {
     .layout { flex-direction: column; }
     .controls { width: auto; border-right: none; border-bottom: 1px solid var(--border); }
@@ -163,7 +167,7 @@
 <div class="layout">
   <aside class="controls">
     <div class="field">
-      <label>Currency</label>
+      <label for="currency">Currency</label>
       <select id="currency">
         <option value="PHP" selected>🇵🇭 Philippine Peso (₱)</option>
         <option value="USD">🇺🇸 US Dollar ($)</option>
@@ -176,34 +180,34 @@
       </select>
     </div>
     <div class="field">
-      <label>Starting portfolio <span class="val" id="v_port">₱30,000,000</span></label>
+      <label for="port">Starting portfolio <span class="val" id="v_port">₱30,000,000</span></label>
       <input type="range" id="port" min="1000000" max="200000000" step="1000000" value="30000000">
     </div>
     <div class="field">
-      <label>Base withdrawal rate <span class="val" id="v_wr">3.5%</span></label>
+      <label for="wr">Base withdrawal rate <span class="val" id="v_wr">3.5%</span></label>
       <input type="range" id="wr" min="2" max="8" step="0.1" value="3.5">
     </div>
     <div class="field">
-      <label>Retirement horizon <span class="val" id="v_years">30 yrs</span></label>
+      <label for="years">Retirement horizon <span class="val" id="v_years">30 yrs</span></label>
       <input type="range" id="years" min="10" max="50" step="1" value="30">
     </div>
     <div class="field">
-      <label>Expected annual return <span class="val" id="v_ret">7.0%</span></label>
+      <label for="ret">Expected annual return <span class="val" id="v_ret">7.0%</span></label>
       <input type="range" id="ret" min="2" max="12" step="0.1" value="7">
     </div>
     <div class="field">
-      <label>Volatility (std dev) <span class="val" id="v_vol">15%</span></label>
+      <label for="vol">Volatility (std dev) <span class="val" id="v_vol">15%</span></label>
       <input type="range" id="vol" min="5" max="30" step="0.5" value="15">
     </div>
     <div class="field">
-      <label>Inflation <span class="val" id="v_inf">2.5%</span></label>
+      <label for="inf">Inflation <span class="val" id="v_inf">2.5%</span></label>
       <input type="range" id="inf" min="0" max="6" step="0.1" value="2.5">
     </div>
 
     <div class="box tier">
       <h3>Spending Tiers</h3>
       <div class="field" style="margin-bottom:8px">
-        <label>Essential share of baseline <span class="val" id="v_ess">60%</span></label>
+        <label for="ess">Essential share of baseline <span class="val" id="v_ess">60%</span></label>
         <input type="range" id="ess" min="30" max="90" step="5" value="60">
       </div>
       <div class="split-hint">Year-1 spend splits into <b class="e">essential</b> (never cut, inflation-tracked) and <b class="d">discretionary</b> (flexes with the market).</div>
@@ -212,11 +216,11 @@
     <div class="box rule">
       <h3>Discretionary Flex Rule</h3>
       <div class="field" style="margin-bottom:14px">
-        <label>Loss / gain trigger <span class="val" id="v_thr">15%</span></label>
+        <label for="thr">Loss / gain trigger <span class="val" id="v_thr">15%</span></label>
         <input type="range" id="thr" min="5" max="30" step="1" value="15">
       </div>
       <div class="field" style="margin-bottom:0">
-        <label>Flex step <span class="val" id="v_cut">10%</span></label>
+        <label for="cut">Flex step <span class="val" id="v_cut">10%</span></label>
         <input type="range" id="cut" min="5" max="40" step="1" value="10">
       </div>
     </div>
@@ -224,17 +228,17 @@
     <div class="box rail">
       <h3>Floor &amp; Ceiling</h3>
       <div class="field" style="margin-bottom:14px">
-        <label>Spending floor <span class="val" id="v_floor">85%</span></label>
+        <label for="floor">Spending floor <span class="val" id="v_floor">85%</span></label>
         <input type="range" id="floor" min="50" max="100" step="1" value="85">
       </div>
       <div class="field" style="margin-bottom:0">
-        <label>Spending ceiling <span class="val" id="v_ceil">110%</span></label>
+        <label for="ceil">Spending ceiling <span class="val" id="v_ceil">110%</span></label>
         <input type="range" id="ceil" min="100" max="150" step="1" value="110">
       </div>
     </div>
 
     <div class="field">
-      <label>Simulation trials <span class="val" id="v_trials">2,000</span></label>
+      <label for="trials">Simulation trials <span class="val" id="v_trials">2,000</span></label>
       <input type="range" id="trials" min="500" max="10000" step="500" value="2000">
     </div>
 
@@ -253,9 +257,10 @@
     <div class="cards" id="cards"></div>
 
     <div class="panel">
-      <h2>Portfolio survival — median &amp; range</h2>
+      <h2 id="fanChartHeading">Portfolio survival — median &amp; range</h2>
       <p class="sub">Shaded band = 10th–90th percentile of outcomes. Lines = median balance.</p>
-      <canvas id="fanChart" height="320"></canvas>
+      <canvas id="fanChart" height="320" role="img" aria-labelledby="fanChartHeading" aria-describedby="fanChartSummary">Comparison of dynamic and fixed strategies; a text summary follows.</canvas>
+      <p id="fanChartSummary" class="sr-only" aria-live="polite">Run a simulation for the comparison summary.</p>
       <div class="legend">
         <span><i class="swatch" style="background:var(--dynamic)"></i> Dynamic strategy</span>
         <span><i class="swatch" style="background:var(--fixed)"></i> Fixed withdrawal</span>
@@ -477,6 +482,7 @@ function run(){
   lastFix=fix; lastDyn=dyn;
   renderCards(fix, dyn, p);
   drawFan(fix, dyn, p);
+  $('fanChartSummary').textContent = 'After ' + p.years + ' years: dynamic strategy median ' + fmtAbbr(dyn.medianEnd) + ' (10th–90th percentile ' + fmtAbbr(dyn.p10[p.years]) + ' to ' + fmtAbbr(dyn.p90[p.years]) + '); fixed withdrawal median ' + fmtAbbr(fix.medianEnd) + ' (10th–90th percentile ' + fmtAbbr(fix.p10[p.years]) + ' to ' + fmtAbbr(fix.p90[p.years]) + ').';
   renderTable(dyn.sample, p);
 }
 
