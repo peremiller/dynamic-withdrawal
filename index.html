@@ -475,7 +475,7 @@ function paramsFor(strategy, trials){
   };
 }
 
-let lastFix=null, lastDyn=null;
+let lastFix=null, lastDyn=null, lastRunYears=null;
 
 function run(){
   const strategy = {
@@ -486,7 +486,7 @@ function run(){
   const fix = runStrategy(p, false);
   const dyn = runStrategy(p, true);
   $('resultsStatus').textContent = 'Simulation refreshed for ' + p.years + ' years with ' + p.trials.toLocaleString('en-US') + ' trials per strategy.';
-  lastFix=fix; lastDyn=dyn;
+  lastFix=fix; lastDyn=dyn; lastRunYears=p.years;
   renderCards(fix, dyn, p);
   drawFan(fix, dyn, p);
   $('fanChartSummary').textContent = 'After ' + p.years + ' years: dynamic strategy median ' + fmtAbbr(dyn.medianEnd) + ' (10th–90th percentile ' + fmtAbbr(dyn.p10[p.years]) + ' to ' + fmtAbbr(dyn.p90[p.years]) + '); fixed withdrawal median ' + fmtAbbr(fix.medianEnd) + ' (10th–90th percentile ' + fmtAbbr(fix.p10[p.years]) + ' to ' + fmtAbbr(fix.p90[p.years]) + ').';
@@ -664,7 +664,7 @@ function applyPlan(s){
 
 $('runBtn').addEventListener('click', run);
 $('suggestBtn').addEventListener('click', suggest);
-window.addEventListener('resize', ()=>{ if(lastFix) drawFan(lastFix,lastDyn,{years:+$('years').value}); });
+window.addEventListener('resize', ()=>{ if(lastFix) drawFan(lastFix,lastDyn,{years:lastRunYears}); });
 run();
 </script>
 </body>
