@@ -90,7 +90,7 @@ test('stale simulation outputs are announced and recommendations are hidden afte
 test('resize keeps the last simulated horizon even when slider inputs are stale', () => {
   const runMatch = html.match(/let lastFix=null, lastDyn=null, lastRunYears=null;[\s\S]*?(?=\nfunction renderCards\()/);
   assert.ok(runMatch, 'simulation cache and run handler exist');
-  const resizeMatch = html.match(/window\.addEventListener\('resize',\s*\(\)=>\{[^}]*\}\);/);
+  const resizeMatch = html.split('\n').find(line => line.includes("window.addEventListener('resize'"));
   assert.ok(resizeMatch, 'resize handler exists');
   const values = { years: { value: '30' }, trials: { value: '500' } };
   for (const name of ['wr','ess','thr','cut','floor','ceil']) values[name] = { value: '1' };
@@ -98,7 +98,7 @@ test('resize keeps the last simulated horizon even when slider inputs are stale'
   const drawings = [];
   const stub = { medianEnd: 100, p10: Array(51).fill(10), p90: Array(51).fill(200) };
   const evaluate = new Function('$', 'paramsFor', 'runStrategy', 'renderCards', 'drawFan', 'fmtAbbr', 'renderTable', 'window', 
-    runMatch[0] + '\n' + resizeMatch[0] + '\nreturn run;');
+    runMatch[0] + '\n' + resizeMatch + '\nreturn run;');
   const events = {};
   const run = evaluate(id => values[id], (_strategy, trials) => ({ years: +values.years.value, trials }),
     () => stub, () => {}, (_fix, _dyn, params) => drawings.push(params.years),
