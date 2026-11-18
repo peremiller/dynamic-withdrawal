@@ -86,3 +86,30 @@ test('stale simulation outputs are announced and recommendations are hidden afte
   assert.match(html, /Simulation refreshed for /);
   assert.match(html, /suggestPanel'\)\.classList\.remove\('show'\)/);
 });
+
+test('resize keeps the last simulated horizon even when slider inputs are stale', () => {
+  const runMatch = html.match(/let lastFix=null, lastDyn=null, lastRunYears=null;[\s\S]*?(?=\nfunction renderCards\()/);
+  assert.ok(runMatch, 'simulation cache and run handler exist');
+  const resizeMatch = html.match(/window\.addEventListener\('resize',\s*\(\)=>\{[^}]*\}\);/);
+  assert.ok(resizeMatch, 'resize handler exists');
+  const values = { years: { value: '30' }, trials: { value: '500' } };
+  for (const name of ['wr','ess','thr','cut','floor','ceil']) values[name] = { value: '1' };
+  for (const name of ['resultsStatus','fanChartSummary']) values[name] = { textContent: '' };
+  const drawings = [];
+  const stub = { medianEnd: 100, p10: Array(51).fill(10), p90: Array(51).fill(200) };
+  const evaluate = new Function('$', 'paramsFor', 'runStrategy', 'renderCards', 'drawFan', 'fmtAbbr', 'renderTable', 'window', 
+    runMatch[0] + '\n' + resizeMatch[0] + '\nreturn run;');
+  const events = {};
+  const run = evaluate(id => values[id], (_strategy, trials) => ({ years: +values.years.value, trials }),
+    () => stub, () => {}, (_fix, _dyn, params) => drawings.push(params.years),
+    n => String(n), () => {}, { addEventListener: (name, callback) => { events[name] = callback; } });
+  run();
+  assert.equal(drawings.at(-1), 30);
+  values.years.value = '42';
+  events.resize();
+  assert.equal(drawings.at(-1), 30, 'resizing must not stretch 30-year result to unsimulated 42 years');
+  assert.match(values.fanChartSummary.textContent, /After 30 years/);
+  run();
+  events.resize();
+  assert.equal(drawings.at(-1), 42, 'resizing after rerun must use the newly simulated horizon');
+});
