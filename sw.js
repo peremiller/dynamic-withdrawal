@@ -1,4 +1,4 @@
-const CONFIG = {"app":"dynamic-withdrawal","version":"34f8d12793c719a00f37","assets":["favicon.svg","index.html","manifest.webmanifest","offline-client.js"],"pages":["index.html"],"spa":false};
+const CONFIG = {"app":"dynamic-withdrawal","version":"f29ab62d9b9bf480496c","assets":["favicon.svg","index.html","manifest.webmanifest","offline-client.js"],"pages":["index.html"],"spa":false};
 const BASE = new URL('./', self.location.href);
 const PREFIX = 'pages-offline-' + CONFIG.app + '-';
 const CACHE = PREFIX + CONFIG.version;
