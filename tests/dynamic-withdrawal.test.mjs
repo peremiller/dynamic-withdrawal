@@ -30,9 +30,15 @@ test('keyboard focus and narrow layout are defined; reduced-motion spinner is su
   assert.match(html, /class="sr-only" aria-live="polite"/);
 });
 
+test('keyboard users can bypass controls and focus the results landmark', () => {
+  assert.ok(html.includes('<a class="skip-link" href="#results">Skip to simulation results</a>'));
+  assert.ok(html.includes('<main class="results" id="results" tabindex="-1">'));
+  assert.ok(html.includes('.skip-link:focus { top: 10px; }'));
+  assert.ok(html.includes('main:focus { outline: 3px solid var(--accent)'));
+});
 test('preserve simulation controls, outcomes, algorithms, and existing routes', () => {
   for (const name of ['simulateOne','runStrategy','drawFan','run','renderTable','buildCandidates','suggest','applyPlan']) assert.ok(html.includes('function ' + name + '('));
-  assert.match(html, /<main class="results">/);
+  assert.match(html, /<main class="results" id="results" tabindex="-1">/);
   assert.match(html, /id="runBtn"/);
   assert.match(html, /id="suggestBtn"/);
   assert.match(html, /id="pathTable"/);
